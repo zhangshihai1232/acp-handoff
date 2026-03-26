@@ -28,14 +28,14 @@ acp-handoff 插件允许在对话或 Cron 任务中触发 ACP 子任务，并支
 
 ### 场景描述
 
-在与任意 agent 的对话中，触发 clg agent 执行代码分析任务，结果通过 Discord 推送。
+在与任意 agent 的对话中，触发 `claude` 子 Agent 执行代码分析任务，结果通过 Discord 推送。
 
 ### 方式 1：极简格式（推荐）⭐
 
 **最简单的触发方式**，只需要提供 agent 和任务内容：
 
 ```
-使用 acpoff 让 clg 执行以下任务：
+使用 acpoff 让 claude 执行以下任务：
 
 <task>
 分析 src/protocol.ts 文件的类型定义，输出：
@@ -55,7 +55,7 @@ acp-handoff 插件允许在对话或 Cron 任务中触发 ACP 子任务，并支
 **可选配置**：
 
 ```
-使用 acpoff 让 clg 执行以下任务（同步返回）：
+使用 acpoff 让 claude 执行以下任务（同步返回）：
 
 <task>
 读取 src/protocol.ts 的前 50 行
@@ -63,7 +63,7 @@ acp-handoff 插件允许在对话或 Cron 任务中触发 ACP 子任务，并支
 ```
 
 ```
-使用 acpoff 让 clg 执行以下任务（最小上下文）：
+使用 acpoff 让 claude 执行以下任务（最小上下文）：
 
 <task>
 统计 src 目录下的 .ts 文件数量
@@ -71,7 +71,7 @@ acp-handoff 插件允许在对话或 Cron 任务中触发 ACP 子任务，并支
 ```
 
 ```
-使用 acpoff 让 clg 执行以下任务（续接 code-analysis）：
+使用 acpoff 让 claude 执行以下任务（续接 code-analysis）：
 
 <task>
 基于上次的分析，重点说明 ContextControl 的设计
@@ -96,14 +96,14 @@ acp-handoff 插件允许在对话或 Cron 任务中触发 ACP 子任务，并支
 
 <acp_request>
   <meta>
-    <agentId>clg</agentId>
+    <agentId>claude</agentId>
     <sessionKey>code-analysis-session</sessionKey>
     <model>sonnet</model>
     <maxTurns>3</maxTurns>
     <responseMode>async-callback</responseMode>
     <callback>
       <channel>discord</channel>
-      <to>user:881734814204571708</to>
+      <to>user:YOUR_DISCORD_USER_ID</to>
     </callback>
     <includeMemory>true</includeMemory>
     <includeRules>true</includeRules>
@@ -124,13 +124,13 @@ acp-handoff 插件允许在对话或 Cron 任务中触发 ACP 子任务，并支
 
 | 字段 | 值 | 说明 |
 |------|-----|------|
-| `agentId` | `clg` | 目标 agent（clg = Claude Code General）|
+| `agentId` | `claude` | 目标 ACP 子 agent（示例名，替换为你实际配置的名称）|
 | `sessionKey` | `code-analysis-session` | 会话标识（用于续接）|
 | `model` | `sonnet` | 使用 Sonnet 模型 |
 | `maxTurns` | `3` | 最多 3 轮对话 |
 | `responseMode` | `async-callback` | 异步模式（必须配合 callback）|
 | `callback.channel` | `discord` | 回调渠道 |
-| `callback.to` | `user:881734814204571708` | 目标用户 ID |
+| `callback.to` | `user:YOUR_DISCORD_USER_ID` | 目标用户 ID |
 | `includeMemory` | `true` | 包含历史记忆 |
 | `includeRules` | `true` | 包含核心原则 |
 | `includeAgents` | `true` | 包含协作规范 |
@@ -142,13 +142,13 @@ acp-handoff 插件允许在对话或 Cron 任务中触发 ACP 子任务，并支
 1. **触发**：在对话中发送上述提示词
 2. **检测**：插件检测到 `[acp-handoff]` 标记（acpoff skill 自动添加）
 3. **打包**：插件读取父会话快照，打包上下文
-4. **执行**：spawn clg agent，传递完整 payload
+4. **执行**：spawn `claude` agent，传递完整 payload
 5. **回调**：子任务完成后，通过 Discord 推送结果
 
 ### 预期结果
 
 - Discord 收到消息，包含代码分析结果
-- 会话 key 存储到 `~/.openclaw/acp-handoff/session-keys/clg-code-analysis-session.json`
+- 会话 key 存储到 `~/.openclaw/acp-handoff/session-keys/claude-code-analysis-session.json`
 - 下次使用相同 sessionKey 时，会续接同一个 session
 
 ### 续接示例
@@ -160,7 +160,7 @@ acp-handoff 插件允许在对话或 Cron 任务中触发 ACP 子任务，并支
 
 <acp_request>
   <meta>
-    <agentId>clg</agentId>
+    <agentId>claude</agentId>
     <sessionKey>code-analysis-session</sessionKey>
     <responseMode>async-callback</responseMode>
     <callback>
@@ -203,7 +203,7 @@ acp-handoff 插件允许在对话或 Cron 任务中触发 ACP 子任务，并支
       "sessionTarget": "isolated",
       "payload": {
         "kind": "agentTurn",
-        "message": "使用 cron-acp skill 处理这个请求。\n\n<acp_request>\n  <meta>\n    <agentId>clg</agentId>\n    <sessionKey>skill-builder-persistent</sessionKey>\n    <model>sonnet</model>\n    <maxTurns>5</maxTurns>\n    <responseMode>async-callback</responseMode>\n    <callback>\n      <channel>discord</channel>\n      <to>user:881734814204571708</to>\n    </callback>\n    <includeMemory>false</includeMemory>\n    <includeRules>true</includeRules>\n    <includeAgents>false</includeAgents>\n    <includeTools>false</includeTools>\n    <includeArtifacts>false</includeArtifacts>\n    <customGuide>\n你是 Skill 构建专家，专注于创建规范的 SKILL.md 文件。\n\n执行流程：\n1. 读取 ~/.claude/skills/ 目录，分析现有 skill 结构\n2. 识别用户需求中缺失的 skill 类型\n3. 为每个缺失项创建符合规范的 SKILL.md\n4. 不修改任何现有文件\n\n质量标准：\n- 文件名：kebab-case，描述性强\n- 结构：包含 description, triggers, examples\n- 内容：简洁、可执行、有示例\n    </customGuide>\n  </meta>\n  <cli_prompt>\n分析当前 skill 体系，识别缺失的常用 skill 类型（如数据分析、文档生成、测试辅助等），为每个缺失项创建 SKILL.md 文件。\n\n要求：\n1. 只创建真正缺失的 skill\n2. 每个 skill 必须有明确的使用场景\n3. 输出创建的文件列表和简要说明\n  </cli_prompt>\n</acp_request>"
+        "message": "使用 cron-acp skill 处理这个请求。\n\n<acp_request>\n  <meta>\n    <agentId>claude</agentId>\n    <sessionKey>skill-builder-persistent</sessionKey>\n    <model>sonnet</model>\n    <maxTurns>5</maxTurns>\n    <responseMode>async-callback</responseMode>\n    <callback>\n      <channel>discord</channel>\n      <to>user:YOUR_DISCORD_USER_ID</to>\n    </callback>\n    <includeMemory>false</includeMemory>\n    <includeRules>true</includeRules>\n    <includeAgents>false</includeAgents>\n    <includeTools>false</includeTools>\n    <includeArtifacts>false</includeArtifacts>\n    <customGuide>\n你是 Skill 构建专家，专注于创建规范的 SKILL.md 文件。\n\n执行流程：\n1. 读取 ~/.claude/skills/ 目录，分析现有 skill 结构\n2. 识别用户需求中缺失的 skill 类型\n3. 为每个缺失项创建符合规范的 SKILL.md\n4. 不修改任何现有文件\n\n质量标准：\n- 文件名：kebab-case，描述性强\n- 结构：包含 description, triggers, examples\n- 内容：简洁、可执行、有示例\n    </customGuide>\n  </meta>\n  <cli_prompt>\n分析当前 skill 体系，识别缺失的常用 skill 类型（如数据分析、文档生成、测试辅助等），为每个缺失项创建 SKILL.md 文件。\n\n要求：\n1. 只创建真正缺失的 skill\n2. 每个 skill 必须有明确的使用场景\n3. 输出创建的文件列表和简要说明\n  </cli_prompt>\n</acp_request>"
       }
     }
   ]
@@ -227,12 +227,12 @@ acp-handoff 插件允许在对话或 Cron 任务中触发 ACP 子任务，并支
 
 | 字段 | 值 | 说明 |
 |------|-----|------|
-| `agentId` | `clg` | 目标 agent |
+| `agentId` | `claude` | 目标 ACP 子 agent |
 | `sessionKey` | `skill-builder-persistent` | 会话标识（续接）|
 | `model` | `sonnet` | 使用 Sonnet 模型 |
 | `maxTurns` | `5` | 最多 5 轮对话 |
 | `responseMode` | `async-callback` | 异步模式 |
-| `callback.to` | `user:881734814204571708` | 目标用户 ID |
+| `callback.to` | `user:YOUR_DISCORD_USER_ID` | 目标用户 ID |
 | `includeMemory` | `false` | Cron 任务不需要历史记忆 |
 | `includeRules` | `true` | 保留核心原则 |
 | `includeAgents` | `false` | Cron 任务不需要协作规范 |
@@ -282,13 +282,22 @@ acp-handoff 插件允许在对话或 Cron 任务中触发 ACP 子任务，并支
 
 **作用**：agent 执行任务（不是系统事件）。
 
+### 这个 Cron 配置怎么用
+
+1. 把上面的任务写进 `~/.openclaw/cron/jobs.json`。
+2. 执行 `openclaw cron list`，确认任务 `skill-builder-hourly` 已被加载。
+3. 执行 `openclaw cron run skill-builder-hourly` 做一次手动验证。
+4. 检查 `~/.openclaw/workspace-wolf/.openclaw/acp-handoff/latest-observed-cli-payload.txt`，确认插件已生成最终 payload。
+5. 检查 `~/.openclaw/acp-handoff/session-keys/claude-skill-builder-persistent.json`，确认 `sessionKey` 已被记录。
+6. 如果配置了 Discord 回调，再确认你的 Discord 收到了结果消息。
+
 ### 执行流程
 
 1. **触发**：Cron 到达 schedule 时间
 2. **启动**：wolf agent 启动 isolated session
 3. **执行**：wolf 调用 cron-acp skill
 4. **交接**：插件检测 `[acp-handoff]`，打包上下文
-5. **spawn**：创建 clg 子会话
+5. **spawn**：创建 `claude` 子会话
 6. **完成**：子任务完成，cron-acp skill 推送到 Discord
 
 ### 验证方法
@@ -304,7 +313,7 @@ openclaw cron run skill-builder-hourly
 cat ~/.openclaw/workspace-wolf/.openclaw/acp-handoff/latest-observed-cli-payload.txt
 
 # 查看会话 key 存储
-cat ~/.openclaw/acp-handoff/session-keys/clg-skill-builder-persistent.json
+cat ~/.openclaw/acp-handoff/session-keys/claude-skill-builder-persistent.json
 ```
 
 ---
@@ -315,7 +324,7 @@ cat ~/.openclaw/acp-handoff/session-keys/clg-skill-builder-persistent.json
 
 | 字段 | 类型 | 说明 | 示例 |
 |------|------|------|------|
-| `agentId` | string | 目标 agent ID | `clg`, `clt`, `wolf` |
+| `agentId` | string | 目标 ACP 子 agent ID | `claude`, `copilot`, `你的自定义 agent` |
 | `cli_prompt` | string | 任务描述 | 分析代码结构 |
 
 ### 可选字段（会话控制）

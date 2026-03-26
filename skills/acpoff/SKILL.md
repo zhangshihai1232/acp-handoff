@@ -44,7 +44,7 @@ user-invocable: true
 
 **示例输入 1**：
 ```
-使用 acpoff 让 clg 执行以下任务：
+使用 acpoff 让 claude 执行以下任务：
 
 <task>
 分析 src/protocol.ts 的类型定义
@@ -53,7 +53,7 @@ user-invocable: true
 
 **示例输入 2**：
 ```
-使用 acpoff 让 clg 执行以下任务（同步返回）：
+使用 acpoff 让 claude 执行以下任务（同步返回）：
 
 <task>
 读取 src/protocol.ts 的前 50 行
@@ -62,7 +62,7 @@ user-invocable: true
 
 **示例输入 3**：
 ```
-使用 acpoff 让 clg 执行以下任务（最小上下文）：
+使用 acpoff 让 claude 执行以下任务（最小上下文）：
 
 <task>
 统计 src 目录下的 .ts 文件数量
@@ -77,7 +77,7 @@ user-invocable: true
 
 1. **目标 agentId**：
    - 从 `使用 acpoff 让 <agentId> 执行` 中提取
-   - 常见值：`clg`, `clt`, `wolf`, `fox`, `copilot`
+   - 常见值：`claude`, `copilot`，或你实际配置的 ACP 子 agent 名称
 
 2. **选项**（如果有）：
    - 从括号 `（...）` 中提取
@@ -206,7 +206,7 @@ user-invocable: true
 
 **用户输入**：
 ```
-使用 acpoff 让 clg 执行以下任务：
+使用 acpoff 让 claude 执行以下任务：
 
 <task>
 分析 src/protocol.ts 的类型定义
@@ -217,7 +217,7 @@ user-invocable: true
 ```xml
 <acp_request>
   <meta>
-    <agentId>clg</agentId>
+    <agentId>claude</agentId>
     <responseMode>async-callback</responseMode>
     <callback>
       <channel>discord</channel>
@@ -235,20 +235,20 @@ user-invocable: true
 {
   "runtime": "acp",
   "mode": "run",
-  "task": "[acp-handoff] <acp_request>\n  <meta>\n    <agentId>clg</agentId>\n    <responseMode>async-callback</responseMode>\n    <callback>\n      <channel>discord</channel>\n      <to>user:881734814204571708</to>\n    </callback>\n  </meta>\n  <cli_prompt>\n分析 src/protocol.ts 的类型定义\n  </cli_prompt>\n</acp_request>"
+  "task": "[acp-handoff] <acp_request>\n  <meta>\n    <agentId>claude</agentId>\n    <responseMode>async-callback</responseMode>\n    <callback>\n      <channel>discord</channel>\n      <to>user:881734814204571708</to>\n    </callback>\n  </meta>\n  <cli_prompt>\n分析 src/protocol.ts 的类型定义\n  </cli_prompt>\n</acp_request>"
 }
 ```
 
 **返回消息**：
 ```
-已触发 clg agent 执行任务，结果将通过 Discord 推送。
+已触发 claude agent 执行任务，结果将通过 Discord 推送。
 ```
 
 ### 示例 2：同步返回
 
 **用户输入**：
 ```
-使用 acpoff 让 clg 执行以下任务（同步返回）：
+使用 acpoff 让 claude 执行以下任务（同步返回）：
 
 <task>
 读取 src/protocol.ts 的前 50 行
@@ -259,7 +259,7 @@ user-invocable: true
 ```xml
 <acp_request>
   <meta>
-    <agentId>clg</agentId>
+    <agentId>claude</agentId>
     <responseMode>sync-return</responseMode>
   </meta>
   <cli_prompt>
@@ -270,14 +270,14 @@ user-invocable: true
 
 **返回消息**：
 ```
-已触发 clg agent 执行任务，等待结果...
+已触发 claude agent 执行任务，等待结果...
 ```
 
 ### 示例 3：最小上下文
 
 **用户输入**：
 ```
-使用 acpoff 让 clg 执行以下任务（最小上下文）：
+使用 acpoff 让 claude 执行以下任务（最小上下文）：
 
 <task>
 统计 src 目录下的 .ts 文件数量
@@ -288,7 +288,7 @@ user-invocable: true
 ```xml
 <acp_request>
   <meta>
-    <agentId>clg</agentId>
+    <agentId>claude</agentId>
     <responseMode>async-callback</responseMode>
     <callback>
       <channel>discord</channel>
@@ -310,7 +310,7 @@ user-invocable: true
 
 **用户输入**：
 ```
-使用 acpoff 让 clg 执行以下任务（续接 code-analysis）：
+使用 acpoff 让 claude 执行以下任务（续接 code-analysis）：
 
 <task>
 基于上次的分析，重点说明 ContextControl 的设计
@@ -321,7 +321,7 @@ user-invocable: true
 ```xml
 <acp_request>
   <meta>
-    <agentId>clg</agentId>
+    <agentId>claude</agentId>
     <sessionKey>code-analysis</sessionKey>
     <responseMode>async-callback</responseMode>
     <callback>
@@ -339,7 +339,7 @@ user-invocable: true
 
 **用户输入**：
 ```
-使用 acpoff 让 clg 执行以下任务（同步，最小上下文）：
+使用 acpoff 让 claude 执行以下任务（同步，最小上下文）：
 
 <task>
 列出所有 .md 文件
@@ -350,7 +350,7 @@ user-invocable: true
 ```xml
 <acp_request>
   <meta>
-    <agentId>clg</agentId>
+    <agentId>claude</agentId>
     <responseMode>sync-return</responseMode>
     <includeMemory>false</includeMemory>
     <includeRules>false</includeRules>
@@ -392,7 +392,7 @@ user-invocable: true
 
 2. **无法提取 agentId**：
    - 返回错误：`错误：无法识别目标 agent，请使用格式"使用 acpoff 让 <agentId> 执行以下任务"`
-   - 列出常用的 agentId：clg, clt, wolf, fox
+   - 列出常用的 agentId：claude, copilot，或你已配置的自定义 agent 名称
 
 3. **异步模式但无法提取 Discord ID**：
    - 返回错误：`错误：当前会话不在 Discord 渠道，请使用同步模式：（同步返回）`
@@ -410,11 +410,10 @@ user-invocable: true
 
 | agentId | 说明 |
 |---------|------|
-| `clg` | Claude Code General - 通用任务 |
-| `clt` | Claude Code - 代码相关任务 |
-| `wolf` | Wolf - 复杂任务协调 |
-| `fox` | Fox - 快速响应 |
-| `copilot` | Copilot - 代码辅助 |
+| `claude` | 常见的 Claude 类 ACP 子 agent 名称示例 |
+| `copilot` | Copilot 类 ACP 子 agent 名称示例 |
+| `wolf` | 如果你的环境把它配置成 ACP 子 agent，也可以直接使用 |
+| `fox` | 如果你的环境把它配置成 ACP 子 agent，也可以直接使用 |
 
 ## 记忆要点
 

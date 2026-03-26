@@ -59,19 +59,80 @@ git clone https://github.com/zhangshihai1232/acp-handoff.git ~/.openclaw/extensi
 
 ### 对话中触发 ACP 子任务
 
-安装完成后，可以直接使用仓库自带的 `acpoff` skill：
+安装完成后，可以直接使用仓库自带的 `acpoff` skill。
+
+其中 `claude` 只是示例名，请替换成你在 ACP / OpenClaw 环境里实际可用的子 Agent 名称：
 
 ```text
-使用 acpoff 让 clg 执行以下任务：
+使用 acpoff 让 claude 执行以下任务：
 
 <task>
-分析 src/protocol.ts 文件的类型定义，并总结关键结构。
+分析 src/protocol.ts 文件的类型定义，并输出：
+1. 所有导出的类型
+2. 类型之间的依赖关系
+3. 两条潜在的重构建议
+</task>
+```
+
+如果你希望当前对话里同步拿到结果，可以这样写：
+
+```text
+使用 acpoff 让 claude 执行以下任务（同步返回）：
+
+<task>
+读取 src/protocol.ts 的前 80 行，并说明 ContextControl 相关字段的作用。
 </task>
 ```
 
 ### Cron 场景
 
 如果你在 `~/.openclaw/cron/jobs.json` 中配置定时任务，可以使用 `cron-acp` skill 作为统一入口，让插件在 Cron 场景下也能完成 ACP 上下文交接和异步回推。
+
+下面是一个可直接参考的示例：让 OpenClaw 的 `wolf` agent 每小时触发一次任务，再把真正的 ACP 子任务派发给 `claude`。
+
+```json
+{
+  "jobs": [
+    {
+      "id": "acp-handoff-hourly-review",
+      "name": "ACP Handoff Hourly Review",
+      "schedule": "7 * * * *",
+      "enabled": true,
+      "agent": "wolf",
+      "delivery": {
+        "mode": "none"
+      },
+      "sessionTarget": "isolated",
+      "payload": {
+        "kind": "agentTurn",
+        "message": "使用 cron-acp skill 处理这个请求。\n\n<acp_request>\n  <meta>\n    <agentId>claude</agentId>\n    <sessionKey>hourly-review</sessionKey>\n    <responseMode>async-callback</responseMode>\n    <callback>\n      <channel>discord</channel>\n      <to>user:YOUR_DISCORD_USER_ID</to>\n    </callback>\n    <includeMemory>false</includeMemory>\n    <includeRules>true</includeRules>\n    <includeAgents>false</includeAgents>\n    <includeTools>false</includeTools>\n    <includeArtifacts>false</includeArtifacts>\n  </meta>\n  <cli_prompt>\n检查当前仓库最近一小时新增的风险点，并给出简短总结。\n  </cli_prompt>\n</acp_request>"
+      }
+    }
+  ]
+}
+```
+
+这里要注意两层 agent：
+
+- `agent: "wolf"` 是 **OpenClaw 里负责执行 cron 的 agent**
+- `<agentId>claude</agentId>` 是 **真正被派发出去的 ACP 子 Agent**
+
+### Cron 怎么用
+
+1. 把任务写入 `~/.openclaw/cron/jobs.json`。
+2. 执行 `openclaw cron list`，确认任务已经被识别。
+3. 执行 `openclaw cron run acp-handoff-hourly-review` 手动跑一遍，先验证配置无误。
+4. 检查 `~/.openclaw/workspace-wolf/.openclaw/acp-handoff/latest-observed-cli-payload.txt`，确认插件确实生成了 handoff payload。
+5. 检查 `~/.openclaw/acp-handoff/session-keys/claude-hourly-review.json`，确认 `sessionKey` 已被记录。
+6. 如果配置了 Discord 回调，再确认 Discord 是否收到了结果。
+
+### Cron 常见坑
+
+- `delivery.mode` 必须是 `none`，否则会和 `cron-acp` 的回推逻辑冲突。
+- `sessionTarget` 必须是 `isolated`，避免污染主会话。
+- `payload.kind` 必须是 `agentTurn`。
+- `callback.to` 要替换成你自己的真实目标，例如 `user:1234567890`。
+- 如果你没有异步回调通道，可以把 `<responseMode>` 改成 `sync-return` 做本地测试。
 
 更完整的对话示例、Cron 配置和字段说明见：
 

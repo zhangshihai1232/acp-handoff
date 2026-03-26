@@ -49,7 +49,7 @@ OpenClaw定时任务 + ACP请求构造工具
 - **OpenClaw agentId**：任务在哪个OpenClaw agent中运行（如 `fox`, `main`, `koala`）
   - 通过 `openclaw agents list` 查看
   - 决定workspace路径和任务运行环境
-- **ACP agentId**：ACP系统中的agent标识符（如 `clg`, `clt`）
+- **ACP agentId**：ACP系统中的 agent 标识符（如 `claude`, `copilot`，或你的自定义子 agent）
   - 在 `metadata.json` 中配置
   - 是ACP系统内部的概念
 - **两者完全独立**：OpenClaw的fox agent可以调用ACP的clg agent
@@ -80,7 +80,7 @@ OpenClaw定时任务 + ACP请求构造工具
    - 时区（默认 `Asia/Shanghai`）
    - 提示词内容（用户指定或留空）
    - ACP元数据：
-     - agentId（ACP系统的agent，如 `clg`, `clt`，与OpenClaw agentId完全不同）
+     - agentId（ACP系统的 agent，如 `claude`, `copilot`，与 OpenClaw agentId 完全不同）
      - sessionKey
      - model（默认 `default`）
      - responseMode（默认 `async-callback`）
@@ -173,7 +173,7 @@ OpenClaw定时任务 + ACP请求构造工具
 4. ACP配置：
    - Agent ID:
 
-用户: clg
+用户: claude
 
 助手:
    - Session Key:
@@ -389,7 +389,7 @@ OpenClaw定时任务：
 ### 步骤
 
 1. **用户指定参数**：
-   - OpenClaw agentId（如 `clg`）
+   - OpenClaw agentId（如 `main`、`fox`）
    - 任务标识符（如 `env-snapshot`）
 
 2. **确定workspace路径**
@@ -422,7 +422,7 @@ OpenClaw定时任务：
 ---
 <acp_request>
   <meta>
-    <agentId>clg</agentId>
+    <agentId>claude</agentId>
     <sessionKey>cron-acp-persistent</sessionKey>
     <model>default</model>
     <responseMode>async-callback</responseMode>
@@ -608,7 +608,7 @@ OpenClaw Agent: fox
    ✓ ~/.openclaw/workspace-fox/cron/env-snapshot/metadata.json
 
 4. 解析元数据：
-   ✓ ACP agentId: clg
+   ✓ ACP agentId: claude
    ✓ sessionKey: cron-acp-persistent
    ✓ responseMode: async-callback
    ✓ callback: discord -> user:881734814204571708
@@ -616,7 +616,7 @@ OpenClaw Agent: fox
 5. 构造 ACP 请求 XML：
 <acp_request>
   <meta>
-    <agentId>clg</agentId>
+    <agentId>claude</agentId>
     <sessionKey>cron-acp-persistent</sessionKey>
     <model>default</model>
     <responseMode>async-callback</responseMode>
@@ -634,7 +634,7 @@ OpenClaw Agent: fox
 6. 调用 sessions_spawn 工具：
    ✓ task: "[acp-handoff] [cron-structured-request]\n\n<acp_request>...</acp_request>"
    ✓ runtime: "acp"
-   ✓ agentId: "clg"
+   ✓ agentId: "claude"
    ✓ mode: "run"
 
 7. sessions_spawn 返回：
@@ -647,7 +647,7 @@ OpenClaw Agent: fox
 [后台流程]
 → acp-handoff插件拦截sessions_spawn
 → 解析<acp_request>，提取meta和cli_prompt
-→ 派发到ACP系统（agentId=clg）
+→ 派发到ACP系统（agentId=claude）
 → ACP执行任务
 → ACP通过Discord回调返回结果（user:881734814204571708）
 ```
@@ -696,7 +696,7 @@ acp-handoff 插件拦截
    └─ 路由到 ACP 系统
    ↓
 ACP 系统执行任务
-   ├─ 使用指定的 agentId (如 clg)
+   ├─ 使用指定的 agentId (如 claude)
    ├─ 使用指定的 sessionKey
    └─ 执行 cli_prompt 中的任务
    ↓
@@ -761,10 +761,10 @@ ACP 通过 callback 回调结果
     - **OpenClaw agentId**：任务运行的环境（如 `fox`, `main`, `koala`）
       - 决定workspace路径和sessions存储
       - 通过 `openclaw agents list` 查看
-    - **ACP agentId**：ACP系统中的agent标识符（如 `clg`, `clt`）
+    - **ACP agentId**：ACP系统中的 agent 标识符（如 `claude`, `copilot`）
       - 在metadata.json中配置
       - 是ACP系统内部概念
-    - **两者完全独立**：OpenClaw的fox可以调用ACP的clg，也可以调用ACP的clt
+    - **两者完全独立**：OpenClaw 的 `fox` 可以调用 ACP 的 `claude`，也可以调用其他自定义子 agent
     - **创建任务时**：需要同时指定这两个agent
 
 ---
@@ -787,7 +787,7 @@ ACP 通过 callback 回调结果
 
 ```json
 {
-  "agentId": "clg",
+  "agentId": "claude",
   "sessionKey": "cron-acp-persistent",
   "model": "default",
   "responseMode": "async-callback",
