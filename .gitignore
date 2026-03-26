@@ -1,0 +1,34 @@
+node_modules/
+
+# Local AI / editor settings
+.claude/
+skills/settings.local.json
+.vscode/
+.idea/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Build and coverage output
+dist/
+build/
+coverage/
+*.tsbuildinfo
+
+# OS / temp files
+.DS_Store
+Thumbs.db
+*.swp
+*.bak
+*.tmp
+*~
+*.backup-*

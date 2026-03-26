@@ -1,0 +1,11 @@
+{
+  "id": "acp-handoff",
+  "name": "ACP Handoff",
+  "description": "Captures parent llm_input context and rewrites ACP sessions_spawn tasks to load a workspace handoff file",
+  "skills": ["./skills"],
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}
