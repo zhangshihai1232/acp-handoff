@@ -412,6 +412,9 @@ acp-handoff 插件的 after_tool_call 中：
 
 ### 6.2 cron-acp skill 解决方案
 
+> 这一节讲的是**底层运行机制**，不是推荐给普通用户的主操作入口。
+> 日常使用时，优先让 AI 通过 `cron-acp` 创建 `{workspace}/cron/{taskId}/prompt.md` 和 `metadata.json`；`jobs.json` 只是最终的调度注册结果。
+
 `cron-acp` skill 的核心设计：
 
 ```
@@ -446,7 +449,7 @@ after_tool_call：
 
 这是一个生产中运行的定时任务，每小时触发一次，派发 ACP 子任务检查 skill 体系。
 
-**完整配置**（`~/.openclaw/cron/jobs.json`）：
+**底层 / 调试视角的完整配置**（`~/.openclaw/cron/jobs.json`）：
 
 ```json
 {

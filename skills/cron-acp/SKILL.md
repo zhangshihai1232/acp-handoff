@@ -44,6 +44,8 @@ OpenClaw定时任务 + ACP请求构造工具
 - 目录名 = 任务标识符（kebab-case）
 - 固定文件名：`prompt.md` + `metadata.json`
 - 任务绑定到特定的OpenClaw agent
+- 推荐入口是“让 AI 用本 skill 创建 / 编辑 / 测试任务”，不是先手写 `jobs.json`
+- 注册出来的仍然是普通 OpenClaw cron；区别只是任务内容放在任务目录里，而不是直接塞进 cron payload
 
 **重要概念区分**：
 - **OpenClaw agentId**：任务在哪个OpenClaw agent中运行（如 `fox`, `main`, `koala`）
@@ -52,7 +54,7 @@ OpenClaw定时任务 + ACP请求构造工具
 - **ACP agentId**：ACP系统中的 agent 标识符（如 `claude`, `copilot`，或你的自定义子 agent）
   - 在 `metadata.json` 中配置
   - 是ACP系统内部的概念
-- **两者完全独立**：OpenClaw的fox agent可以调用ACP的clg agent
+- **两者完全独立**：OpenClaw 的 `fox` agent 可以调用 ACP 的 `claude` agent
 
 ## 核心功能
 
@@ -111,12 +113,15 @@ OpenClaw定时任务 + ACP请求构造工具
    - 内容：ACP元数据配置（JSON格式）
 
 6. **构造 cron message**：
-   ```
-   使用 cron-acp skill 执行任务
+    ```
+    使用 cron-acp skill 执行任务
 
-   OpenClaw Agent: {OpenClaw agentId}
-   任务：{任务标识符}
-   ```
+    OpenClaw Agent: {OpenClaw agentId}
+    任务：{任务标识符}
+    ```
+
+    这里的 cron message 只是“触发入口”，不是完整任务内容。
+    真正的任务内容在 `prompt.md` 和 `metadata.json` 中。
 
 7. **调用 openclaw cron add**：
    ```bash

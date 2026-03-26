@@ -86,53 +86,60 @@ git clone https://github.com/zhangshihai1232/acp-handoff.git ~/.openclaw/extensi
 
 ### Cron 场景
 
-如果你在 `~/.openclaw/cron/jobs.json` 中配置定时任务，可以使用 `cron-acp` skill 作为统一入口，让插件在 Cron 场景下也能完成 ACP 上下文交接和异步回推。
+推荐方式不是手写 `jobs.json`，而是**直接让 AI 使用 `cron-acp` skill 创建任务**。
 
-下面是一个可直接参考的示例：让 OpenClaw 的 `wolf` agent 每小时触发一次任务，再把真正的 ACP 子任务派发给 `claude`。
+例如你可以直接对 OpenClaw 说：
 
-```json
-{
-  "jobs": [
-    {
-      "id": "acp-handoff-hourly-review",
-      "name": "ACP Handoff Hourly Review",
-      "schedule": "7 * * * *",
-      "enabled": true,
-      "agent": "wolf",
-      "delivery": {
-        "mode": "none"
-      },
-      "sessionTarget": "isolated",
-      "payload": {
-        "kind": "agentTurn",
-        "message": "使用 cron-acp skill 处理这个请求。\n\n<acp_request>\n  <meta>\n    <agentId>claude</agentId>\n    <sessionKey>hourly-review</sessionKey>\n    <responseMode>async-callback</responseMode>\n    <callback>\n      <channel>discord</channel>\n      <to>user:YOUR_DISCORD_USER_ID</to>\n    </callback>\n    <includeMemory>false</includeMemory>\n    <includeRules>true</includeRules>\n    <includeAgents>false</includeAgents>\n    <includeTools>false</includeTools>\n    <includeArtifacts>false</includeArtifacts>\n  </meta>\n  <cli_prompt>\n检查当前仓库最近一小时新增的风险点，并给出简短总结。\n  </cli_prompt>\n</acp_request>"
-      }
-    }
-  ]
-}
+```text
+使用 cron-acp 创建一个每小时执行一次的代码巡检任务：
+
+- OpenClaw agent：wolf
+- 任务标识符：hourly-review
+- 任务名称：Hourly Review
+- Cron：7 * * * *
+- ACP agent：claude
+- sessionKey：hourly-review
+- 回调：discord -> user:YOUR_DISCORD_USER_ID
+- 提示词：检查当前仓库最近一小时新增的风险点，并给出简短总结。
 ```
+
+`cron-acp` 会帮你做三件事：
+
+1. 在对应 workspace 下创建任务目录  
+   `~/.openclaw/workspace-wolf/cron/hourly-review/`
+2. 写入两个任务文件  
+   - `prompt.md`：真正给 ACP 子 Agent 的任务内容  
+   - `metadata.json`：`agentId`、`sessionKey`、`responseMode`、`callback` 等元数据
+3. 再注册一个**普通 OpenClaw cron**，让它按计划触发这个任务
 
 这里要注意两层 agent：
 
-- `agent: "wolf"` 是 **OpenClaw 里负责执行 cron 的 agent**
-- `<agentId>claude</agentId>` 是 **真正被派发出去的 ACP 子 Agent**
+- `wolf` 是 **OpenClaw 里负责执行 cron 的 agent**
+- `claude` 是 **真正被派发出去的 ACP 子 Agent**
 
 ### Cron 怎么用
 
-1. 把任务写入 `~/.openclaw/cron/jobs.json`。
-2. 执行 `openclaw cron list`，确认任务已经被识别。
-3. 执行 `openclaw cron run acp-handoff-hourly-review` 手动跑一遍，先验证配置无误。
-4. 检查 `~/.openclaw/workspace-wolf/.openclaw/acp-handoff/latest-observed-cli-payload.txt`，确认插件确实生成了 handoff payload。
-5. 检查 `~/.openclaw/acp-handoff/session-keys/claude-hourly-review.json`，确认 `sessionKey` 已被记录。
-6. 如果配置了 Discord 回调，再确认 Discord 是否收到了结果。
+1. 让 AI 用 `cron-acp` 创建任务。
+2. 检查生成的文件：  
+   - `~/.openclaw/workspace-wolf/cron/hourly-review/prompt.md`  
+   - `~/.openclaw/workspace-wolf/cron/hourly-review/metadata.json`
+3. 执行 `openclaw cron list`，确认 cron 已注册。
+4. 执行 `openclaw cron run hourly-review` 手动跑一遍。
+5. 检查 `~/.openclaw/workspace-wolf/.openclaw/acp-handoff/latest-observed-cli-payload.txt`，确认插件已经生成最终 handoff payload。
+6. 检查 `~/.openclaw/acp-handoff/session-keys/claude-hourly-review.json`，确认 `sessionKey` 已被记录。
+
+### 普通 cron 和 cron-acp cron 的差别
+
+- **普通 cron**：任务内容通常直接写在 cron 本身的 payload/message 里。
+- **cron-acp cron**：cron 只负责“定时触发哪个任务”；真正任务内容放在 `prompt.md` 和 `metadata.json` 里。
+
+所以大多数情况下，你只需要关心 `workspace/cron/{taskId}/` 下面的两个文件，不需要先手写 `jobs.json`。
 
 ### Cron 常见坑
 
-- `delivery.mode` 必须是 `none`，否则会和 `cron-acp` 的回推逻辑冲突。
-- `sessionTarget` 必须是 `isolated`，避免污染主会话。
-- `payload.kind` 必须是 `agentTurn`。
 - `callback.to` 要替换成你自己的真实目标，例如 `user:1234567890`。
-- 如果你没有异步回调通道，可以把 `<responseMode>` 改成 `sync-return` 做本地测试。
+- 如果你只是修改任务内容，优先改 `prompt.md` 或 `metadata.json`，不要先改底层 cron 注册项。
+- `~/.openclaw/cron/jobs.json` 更适合当作调试 / 排障视角来看，不是推荐的主编辑入口。
 
 更完整的对话示例、Cron 配置和字段说明见：
 

@@ -184,121 +184,87 @@ acp-handoff 插件允许在对话或 Cron 任务中触发 ACP 子任务，并支
 
 每小时执行一次 skill 体系检查，发现缺失的 skill 并创建，结果推送到 Discord。
 
-### 完整 Cron 配置
+### 推荐方式：让 AI 用 cron-acp 创建
 
-**文件位置**：`~/.openclaw/cron/jobs.json`
+推荐流程不是先手写 `~/.openclaw/cron/jobs.json`，而是直接让 AI 使用 `cron-acp` skill 创建任务。
 
-```json
-{
-  "jobs": [
-    {
-      "id": "skill-builder-hourly",
-      "name": "Skill Builder - Hourly Check",
-      "schedule": "7 * * * *",
-      "enabled": true,
-      "agent": "wolf",
-      "delivery": {
-        "mode": "none"
-      },
-      "sessionTarget": "isolated",
-      "payload": {
-        "kind": "agentTurn",
-        "message": "使用 cron-acp skill 处理这个请求。\n\n<acp_request>\n  <meta>\n    <agentId>claude</agentId>\n    <sessionKey>skill-builder-persistent</sessionKey>\n    <model>sonnet</model>\n    <maxTurns>5</maxTurns>\n    <responseMode>async-callback</responseMode>\n    <callback>\n      <channel>discord</channel>\n      <to>user:YOUR_DISCORD_USER_ID</to>\n    </callback>\n    <includeMemory>false</includeMemory>\n    <includeRules>true</includeRules>\n    <includeAgents>false</includeAgents>\n    <includeTools>false</includeTools>\n    <includeArtifacts>false</includeArtifacts>\n    <customGuide>\n你是 Skill 构建专家，专注于创建规范的 SKILL.md 文件。\n\n执行流程：\n1. 读取 ~/.claude/skills/ 目录，分析现有 skill 结构\n2. 识别用户需求中缺失的 skill 类型\n3. 为每个缺失项创建符合规范的 SKILL.md\n4. 不修改任何现有文件\n\n质量标准：\n- 文件名：kebab-case，描述性强\n- 结构：包含 description, triggers, examples\n- 内容：简洁、可执行、有示例\n    </customGuide>\n  </meta>\n  <cli_prompt>\n分析当前 skill 体系，识别缺失的常用 skill 类型（如数据分析、文档生成、测试辅助等），为每个缺失项创建 SKILL.md 文件。\n\n要求：\n1. 只创建真正缺失的 skill\n2. 每个 skill 必须有明确的使用场景\n3. 输出创建的文件列表和简要说明\n  </cli_prompt>\n</acp_request>"
-      }
-    }
-  ]
-}
+你可以这样说：
+
+```text
+使用 cron-acp 创建一个每小时执行一次的 skill 检查任务：
+
+- OpenClaw agent：wolf
+- 任务标识符：skill-builder-hourly
+- 任务名称：Skill Builder - Hourly Check
+- Cron：7 * * * *
+- ACP agent：claude
+- sessionKey：skill-builder-persistent
+- 回调：discord -> user:YOUR_DISCORD_USER_ID
+- 提示词：
+  分析当前 skill 体系，识别缺失的常用 skill 类型，并为缺失项创建 SKILL.md。
 ```
 
-### 字段说明（Cron 层级）
+### 创建后会得到什么
 
-| 字段 | 值 | 说明 |
-|------|-----|------|
-| `id` | `skill-builder-hourly` | 任务唯一标识 |
-| `name` | `Skill Builder - Hourly Check` | 任务名称 |
-| `schedule` | `7 * * * *` | 每小时第 7 分钟执行（避开整点）|
-| `enabled` | `true` | 任务启用状态 |
-| `agent` | `wolf` | 执行任务的 agent |
-| `delivery.mode` | `none` | 不使用 cron 自带的 delivery（由 skill 推送）|
-| `sessionTarget` | `isolated` | 独立会话（必须）|
-| `payload.kind` | `agentTurn` | agent 执行任务（必须）|
+`cron-acp` 会在对应 OpenClaw workspace 下创建一个任务目录：
 
-### 字段说明（ACP 层级）
-
-| 字段 | 值 | 说明 |
-|------|-----|------|
-| `agentId` | `claude` | 目标 ACP 子 agent |
-| `sessionKey` | `skill-builder-persistent` | 会话标识（续接）|
-| `model` | `sonnet` | 使用 Sonnet 模型 |
-| `maxTurns` | `5` | 最多 5 轮对话 |
-| `responseMode` | `async-callback` | 异步模式 |
-| `callback.to` | `user:YOUR_DISCORD_USER_ID` | 目标用户 ID |
-| `includeMemory` | `false` | Cron 任务不需要历史记忆 |
-| `includeRules` | `true` | 保留核心原则 |
-| `includeAgents` | `false` | Cron 任务不需要协作规范 |
-| `includeTools` | `false` | 不包含工具说明 |
-| `includeArtifacts` | `false` | 不包含文件路径 |
-| `customGuide` | 自定义内容 | 覆盖默认 guide |
-
-### 关键配置说明
-
-#### 1. 使用 cron-acp skill
-
-```
-使用 cron-acp skill 处理这个请求。
+```text
+~/.openclaw/workspace-wolf/cron/skill-builder-hourly/
+├── prompt.md
+└── metadata.json
 ```
 
-**作用**：
-- 自动添加 `[acp-handoff]` 标记（触发插件）
-- 等待子任务完成
-- 通过 Discord 推送结果（弥补 cron 的 after_tool_call 失效）
+- `prompt.md`：真正交给 ACP 子 agent 的任务正文
+- `metadata.json`：`agentId`、`sessionKey`、`responseMode`、`callback` 等元数据
 
-#### 2. delivery.mode = "none"
+然后它会再创建一个**普通 OpenClaw cron**，负责按计划触发这个任务。
 
-```json
-"delivery": {
-  "mode": "none"
-}
+### 普通 cron 和 cron-acp cron 的差别
+
+| 类型 | 任务内容放哪里 | 适合什么场景 |
+|------|----------------|-------------|
+| 普通 cron | 直接写在 cron 本身的 payload/message | 简单定时任务 |
+| cron-acp cron | 写在 `{workspace}/cron/{taskId}/prompt.md` 和 `metadata.json` | 需要 ACP 子任务、续接、回调、后续可维护的任务 |
+
+### 你平时应该编辑哪里
+
+优先编辑这两个文件：
+
+```text
+~/.openclaw/workspace-wolf/cron/skill-builder-hourly/prompt.md
+~/.openclaw/workspace-wolf/cron/skill-builder-hourly/metadata.json
 ```
 
-**作用**：关闭 cron 自带的 delivery，由 cron-acp skill 自己推送。
+`~/.openclaw/cron/jobs.json` 更适合作为调度层或排障视角查看，通常不是首选编辑入口。
 
-#### 3. sessionTarget = "isolated"
+### 怎么验证
 
-```json
-"sessionTarget": "isolated"
+```bash
+# 查看 cron 是否已注册
+openclaw cron list
+
+# 手动触发一次
+openclaw cron run skill-builder-hourly
+
+# 查看任务内容文件
+cat ~/.openclaw/workspace-wolf/cron/skill-builder-hourly/prompt.md
+cat ~/.openclaw/workspace-wolf/cron/skill-builder-hourly/metadata.json
+
+# 查看插件生成的 payload
+cat ~/.openclaw/workspace-wolf/.openclaw/acp-handoff/latest-observed-cli-payload.txt
+
+# 查看 sessionKey 映射
+cat ~/.openclaw/acp-handoff/session-keys/claude-skill-builder-persistent.json
 ```
-
-**作用**：创建独立会话，不影响主会话。
-
-#### 4. payload.kind = "agentTurn"
-
-```json
-"payload": {
-  "kind": "agentTurn",
-  "message": "..."
-}
-```
-
-**作用**：agent 执行任务（不是系统事件）。
-
-### 这个 Cron 配置怎么用
-
-1. 把上面的任务写进 `~/.openclaw/cron/jobs.json`。
-2. 执行 `openclaw cron list`，确认任务 `skill-builder-hourly` 已被加载。
-3. 执行 `openclaw cron run skill-builder-hourly` 做一次手动验证。
-4. 检查 `~/.openclaw/workspace-wolf/.openclaw/acp-handoff/latest-observed-cli-payload.txt`，确认插件已生成最终 payload。
-5. 检查 `~/.openclaw/acp-handoff/session-keys/claude-skill-builder-persistent.json`，确认 `sessionKey` 已被记录。
-6. 如果配置了 Discord 回调，再确认你的 Discord 收到了结果消息。
 
 ### 执行流程
 
-1. **触发**：Cron 到达 schedule 时间
-2. **启动**：wolf agent 启动 isolated session
-3. **执行**：wolf 调用 cron-acp skill
-4. **交接**：插件检测 `[acp-handoff]`，打包上下文
-5. **spawn**：创建 `claude` 子会话
-6. **完成**：子任务完成，cron-acp skill 推送到 Discord
+1. **创建阶段**：AI 用 `cron-acp` 建任务目录并注册 cron
+2. **触发阶段**：OpenClaw cron 到点后启动 `wolf` 会话
+3. **读取阶段**：`cron-acp` 从 `prompt.md` 和 `metadata.json` 读取任务定义
+4. **交接阶段**：插件检测 `[acp-handoff]`，打包上下文
+5. **执行阶段**：创建 `claude` 子会话
+6. **完成阶段**：子任务完成，结果按配置回推
 
 ### 验证方法
 
@@ -308,6 +274,10 @@ openclaw cron list
 
 # 手动触发测试
 openclaw cron run skill-builder-hourly
+
+# 查看任务定义文件
+cat ~/.openclaw/workspace-wolf/cron/skill-builder-hourly/prompt.md
+cat ~/.openclaw/workspace-wolf/cron/skill-builder-hourly/metadata.json
 
 # 查看生成的 payload
 cat ~/.openclaw/workspace-wolf/.openclaw/acp-handoff/latest-observed-cli-payload.txt
@@ -387,8 +357,7 @@ cat ~/.openclaw/acp-handoff/session-keys/claude-skill-builder-persistent.json
 ### 2. Cron 定时任务场景
 
 **推荐配置**：
-- `delivery.mode`: `none`（使用 cron-acp skill）
-- `sessionTarget`: `isolated`（独立会话）
+- 优先让 AI 用 `cron-acp` 创建 `{workspace}/cron/{taskId}/prompt.md` 和 `metadata.json`
 - `includeMemory`: `false`（定时任务不需要历史）
 - `includeAgents`: `false`（定时任务不需要协作）
 - `customGuide`: 提供明确的执行流程
